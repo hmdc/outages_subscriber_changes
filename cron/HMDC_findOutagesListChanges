@@ -1,0 +1,2 @@
+#!/bin/sh
+/usr/local/bin/HMDC_find_ldap_accounts.sh && /usr/local/bin/HMDC_get_subscribers.py
