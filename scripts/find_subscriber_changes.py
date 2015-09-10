@@ -219,7 +219,7 @@ def email_list(users_to_add, users_to_remove):
   """
 
   fromaddr = "ops@latte.harvard.edu"
-  toaddr = "bfrank@hmdc.harvard.edu"
+  toaddr = "ops@latte.harvard.edu"
   msg = MIMEMultipart()
   msg['From'] = fromaddr
   msg['To'] = toaddr
