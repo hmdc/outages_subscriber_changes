@@ -17,7 +17,7 @@ setup(author='Bradley Frank',
            'sys',
            'urllib',
            'urllib2'],
-      scripts=['scripts/find_subscriber_changes.py', 'query_ldap_accounts.sh'],
+      scripts=['scripts/find_subscriber_changes.py', 'scripts/query_ldap_accounts.sh'],
       url='https://github.com/hmdc/outages-subscriber-changes',
       version='1.0',
 )
