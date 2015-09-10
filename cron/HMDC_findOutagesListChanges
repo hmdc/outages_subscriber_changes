@@ -1,2 +1,5 @@
 #!/bin/sh
-/usr/local/bin/HMDC_find_ldap_accounts.sh && /usr/local/bin/HMDC_get_subscribers.py
+MAILTO=ops@latte.harvard.edu
+query_ldap_accounts=(`which query_ldap_accounts.sh`)
+find_subscriber_changes=(`which find_subscriber_changes.py`)
+${query_ldap_accounts} && ${find_subscriber_changes}
