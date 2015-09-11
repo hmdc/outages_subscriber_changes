@@ -30,6 +30,9 @@ Adapted from: http://starship.python.net/crew/jwt/mailman/#throughtheweb
 See also: http://fog.ccsf.edu/~msapiro/scripts/mailman-subscribers.py
 """
 
+# Email recipient
+recipient = "operations@help.hmdc.harvard.edu"
+
 # Cookie variables
 policy = cookielib.DefaultCookiePolicy(rfc2965=True)
 cookiejar = cookielib.CookieJar(policy)
@@ -38,7 +41,7 @@ opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookiejar)).open
 # List variables
 list_name = "outages"
 list_url = "https://lists.hmdc.harvard.edu"
-with open ("/nfs/tools/extras/Outages_Mailing_List_Password", "r") as f:
+with open("/nfs/tools/extras/Outages_Mailing_List_Password", "r") as f:
     list_password = f.read().replace('\n', '')
 
 # Parsing variables
@@ -213,13 +216,13 @@ def parse_out_users(user_list, subscribers, is_in_list):
   return parsed_users
 
 
-def email_list(users_to_add, users_to_remove):
+def email_list(users_to_add, users_to_remove, recipient):
   """
   Formats the lists for email, creates the email, and sends it.
   """
 
   fromaddr = "ops@latte.harvard.edu"
-  toaddr = "ops@latte.harvard.edu"
+  toaddr = recipient
   msg = MIMEMultipart()
   msg['From'] = fromaddr
   msg['To'] = toaddr
@@ -260,4 +263,4 @@ if __name__ == '__main__':
   disabled_users = parse_out_users(disabled_users, subscribers, True)
 
   # email the complete list
-  email_list(new_active_users, disabled_users)
+  email_list(new_active_users, disabled_users, recipient)
