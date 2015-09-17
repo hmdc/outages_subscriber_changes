@@ -54,9 +54,9 @@ processed_letters = []
 subscribers = {}
 
 # LDAP query results
-all_active_rce_users = "/tmp/all_active_rce_users.list"
-new_active_rce_users = "/tmp/new_active_rce_users.list"
-disabled_rce_users = "/tmp/disabled_rce_users.list"
+all_active_users = "/tmp/all_active_rce_users.list"
+new_active_users = "/tmp/new_active_rce_users.list"
+disabled_users = "/tmp/disabled_rce_users.list"
 
 
 class MailmanHTMLParser(HTMLParser):
@@ -159,6 +159,18 @@ def exclude_active_users(all_active_users, disabled_users):
   return users
 
 
+def load_users_list(source):
+  """Parses list of email addresses from a file into a list."""
+
+  if os.path.isfile(source):
+    hmdclog.log('debug', "Reading in LDAP users: " + source)
+    users = [line.rstrip('\n') for line in open(source)]
+  else:
+    raise Exception("The file " + source + " was not found!")
+
+  return users
+
+
 def scrape_emails(name, password, url):
   """
   Connects to Mailman and scrapes emails from each page of the
@@ -252,6 +264,11 @@ if __name__ == '__main__':
   # Scrape Mailman for Outages list subscribers.
   subscribers = scrape_emails(list_name, list_password, list_url)
   hmdclog.log('debug', "")
+
+  # Read in list of LDAP users.
+  all_active_users = load_users_list(all_active_users)
+  new_active_users = load_users_list(new_active_users)
+  disabled_users = load_users_list(disabled_users)
 
   # Compare lists to each other.
   hmdclog.log('debug', "Exclude active users that have a disabled account.")
