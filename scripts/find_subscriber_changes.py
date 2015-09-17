@@ -33,7 +33,7 @@ See also: http://fog.ccsf.edu/~msapiro/scripts/mailman-subscribers.py
 """
 
 # Email recipient
-recipient = "support@help.hmdc.harvard.edu"
+recipient = "operations@help.hmdc.harvard.edu"
 
 # Cookie variables
 policy = cookielib.DefaultCookiePolicy(rfc2965=True)
@@ -105,6 +105,60 @@ class MailmanHTMLParser(HTMLParser):
               letters.append(letter)
 
 
+def email_list(users_to_add, users_to_remove, recipient):
+  """Formats the lists for email, creates the email, and sends it."""
+
+  fromaddr = "ops@latte.harvard.edu"
+  toaddr = recipient
+  msg = MIMEMultipart()
+  msg['From'] = fromaddr
+  msg['To'] = toaddr
+  msg['Subject'] = "Outages mailing list changes"
+
+  body = "Please visit " \
+    "https://lists.hmdc.harvard.edu/mailman/admin/outages/members to add or " \
+    "remove the following users from the Outages mailing list.\n"
+
+  body = body + "\nUSERS TO ADD TO OUTAGES LIST\n"
+  for user in users_to_add:
+    body = body + user + "\n"
+
+  body = body + "\nUSERS TO REMOVE FROM OUTAGES LIST\n"
+  for user in users_to_remove:
+    body = body + user + "\n"
+
+  msg.attach(MIMEText(body, 'plain'))
+
+  hmdclog.log('debug', "From: " + fromaddr)
+  hmdclog.log('debug', "To: " + toaddr)
+
+  server = smtplib.SMTP('localhost')
+  text = msg.as_string()
+  server.sendmail(fromaddr, toaddr, text)
+  server.quit()
+
+  hmdclog.log('debug', "Email sent.")
+
+
+def exclude_active_users(all_active_users, disabled_users):
+  """
+  Some emails may be part of multiple accounts. In order to prevent active
+  users from being removed from the list (as part of the disabled users list)
+  this will remove the email address if it's attached to an active account.
+  """
+
+  users = []
+  num_disabled = len(disabled_users)
+
+  for email in disabled_users:
+    if email not in all_active_users:
+      users.append(email)
+    else:
+      hmdclog.log('debug', "DISCARDED: " + email)
+
+  return users
+
+
 def scrape_emails(name, password, url):
   """
   Connects to Mailman and scrapes emails from each page of the
@@ -157,59 +211,6 @@ def scrape_emails(name, password, url):
   return members
 
 
-def parse_ldap_users(source):
-  """
-  Email addresses are found in various LDAP attributes, and are sometimes
-  cut off in the gecos field. Since the list should already be in alphabetical
-  order, this function checks if the current address is a substring of the
-  following email address. If it is, it's discarded.
-  """
-
-  ldap_users = []
-  users = []
-
-  if os.path.isfile(source):
-    hmdclog.log('debug', "Reading in LDAP users: " + source)
-    ldap_users = [line.rstrip('\n') for line in open(source)]
-  else:
-    raise Exception("The file " + source + " was not found!")
-
-  num_ldap_users = len(ldap_users)
-
-  for i in range(num_ldap_users):
-    email = ldap_users[i]
-    inc = i + 1
-    if inc < num_ldap_users:
-      if email not in ldap_users[inc]:
-        users.append(email)
-      else:
-        hmdclog.log('debug', "DISCARDED: " + email + " FOUND: " + ldap_users[inc])
-    else:
-      hmdclog.log('debug', "Reached last address.")
-      users.append(email)
-
-  return users
-
-
-def exclude_active_users(all_active_users, disabled_users):
-  """
-  Some emails may be part of multiple accounts. In order to prevent active
-  users from being removed from the list (as part of the disabled users list)
-  this will remove the email address if it's attached to an active account.
-  """
-
-  users = []
-  num_disabled = len(disabled_users)
-
-  for email in disabled_users:
-    if email not in all_active_users:
-      users.append(email)
-    else:
-      hmdclog.log('debug', "DISCARDED: " + email)
-
-  return users
-
-
 def parse_out_users(user_list, subscribers, is_in_list):
   """
   Disabled LDAP users only need to be marked for removal if they are still in
@@ -236,41 +237,6 @@ def parse_out_users(user_list, subscribers, is_in_list):
   return parsed_users
 
 
-def email_list(users_to_add, users_to_remove, recipient):
-  """Formats the lists for email, creates the email, and sends it."""
-
-  fromaddr = "ops@latte.harvard.edu"
-  toaddr = recipient
-  msg = MIMEMultipart()
-  msg['From'] = fromaddr
-  msg['To'] = toaddr
-  msg['Subject'] = "Outages mailing list changes"
-
-  body = "Please visit " \
-    "https://lists.hmdc.harvard.edu/mailman/admin/outages/members to add or " \
-    "remove the following users from the Outages mailing list.\n"
-
-  body = body + "\nUSERS TO ADD TO OUTAGES LIST\n"
-  for user in users_to_add:
-    body = body + user + "\n"
-
-  body = body + "\nUSERS TO REMOVE FROM OUTAGES LIST\n"
-  for user in users_to_remove:
-    body = body + user + "\n"
-
-  msg.attach(MIMEText(body, 'plain'))
-
-  hmdclog.log('debug', "From: " + fromaddr)
-  hmdclog.log('debug', "To: " + toaddr)
-
-  server = smtplib.SMTP('localhost')
-  text = msg.as_string()
-  server.sendmail(fromaddr, toaddr, text)
-  server.quit()
-
-  hmdclog.log('debug', "Email sent.")
-
-
 if __name__ == '__main__':
   # Setup argument parsing with the argparse module.
   parser = argparse.ArgumentParser(description="Manage RCE group quotas.")
@@ -285,17 +251,6 @@ if __name__ == '__main__':
 
   # Scrape Mailman for Outages list subscribers.
   subscribers = scrape_emails(list_name, list_password, list_url)
-  hmdclog.log('debug', "")
-
-  # Clean up emails generated by ldapsearch.
-  hmdclog.log('debug', "Clean up active LDAP users list.")
-  all_active_users = parse_ldap_users(all_active_rce_users)
-  hmdclog.log('debug', "")
-  hmdclog.log('debug', "Clean up new active LDAP users list.")
-  new_active_users = parse_ldap_users(new_active_rce_users)
-  hmdclog.log('debug', "")
-  hmdclog.log('debug', "Clean up disabled LDAP users list.")
-  disabled_users = parse_ldap_users(disabled_rce_users)
   hmdclog.log('debug', "")
 
   # Compare lists to each other.
