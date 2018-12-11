@@ -251,7 +251,7 @@ def parse_out_users(user_list, subscribers, is_in_list):
 
 if __name__ == '__main__':
   # Setup argument parsing with the argparse module.
-  parser = argparse.ArgumentParser(description="Manage RCE group quotas.")
+  parser = argparse.ArgumentParser(description="Identify users to add to and remove from RCE outages email list.")
   parser.add_argument('-d', '--debug', action='store_true',
                       help="Enables verbose output.")
   args = parser.parse_args()
